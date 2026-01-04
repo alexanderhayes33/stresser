@@ -9,6 +9,7 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
+  SheetTitle,
 } from "@/components/ui/sheet"
 import {
   LayoutDashboard,
@@ -23,6 +24,7 @@ import {
   CreditCard,
   Receipt,
   Home,
+  FileText,
 } from "lucide-react"
 import type { User as UserType } from "@/lib/get-user"
 import { cn } from "@/lib/utils"
@@ -40,6 +42,8 @@ const navigation = [
   { name: "Methods", href: "/admin/methods", icon: Target },
   { name: "Plans", href: "/admin/plans", icon: CreditCard },
   { name: "Transactions", href: "/admin/transactions", icon: Receipt },
+  { name: "API Logs", href: "/admin/api-logs", icon: FileText },
+  { name: "External API Logs", href: "/admin/external-api-logs", icon: Activity },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ]
 
@@ -145,6 +149,7 @@ export function AdminSidebar({ user, onLogout }: AdminSidebarProps) {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-64 p-0">
+          <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           <SidebarContent onItemClick={() => setMobileOpen(false)} />
         </SheetContent>
       </Sheet>

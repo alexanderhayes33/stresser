@@ -20,8 +20,9 @@ import {
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Plus, Edit, Trash2, RefreshCw, Loader2, Infinity } from "lucide-react"
+import { Plus, Edit, Trash2, RefreshCw, Loader2, Infinity, UserPlus } from "lucide-react"
 import PlanFormDialog from "@/components/plan-form-dialog"
+import AssignPlanDialog from "@/components/assign-plan-dialog"
 import { useAlert } from "@/lib/use-alert"
 
 interface Plan {
@@ -47,6 +48,7 @@ export default function PlansListClient() {
   const [deleting, setDeleting] = useState<number | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingPlanId, setEditingPlanId] = useState<string | undefined>(undefined)
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false)
 
   const fetchPlans = async () => {
     setLoading(true)
@@ -153,6 +155,10 @@ export default function PlansListClient() {
             ) : (
               <RefreshCw className="h-4 w-4" />
             )}
+          </Button>
+          <Button variant="outline" onClick={() => setAssignDialogOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Plan to User
           </Button>
           <Button onClick={handleNewPlan}>
             <Plus className="h-4 w-4 mr-2" />
@@ -281,6 +287,12 @@ export default function PlansListClient() {
           />
         </DialogContent>
       </Dialog>
+
+      <AssignPlanDialog
+        open={assignDialogOpen}
+        onClose={() => setAssignDialogOpen(false)}
+        onSuccess={handleSuccess}
+      />
       <AlertComponent />
     </main>
   )

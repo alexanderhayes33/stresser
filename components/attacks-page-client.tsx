@@ -17,6 +17,7 @@ import { Pagination } from "@/components/ui/pagination"
 import { Zap, RefreshCw, CheckCircle2, XCircle, Clock, Loader2, Ban, RotateCw, ArrowDownToLine, Activity } from "lucide-react"
 import { AttackCountdown } from "@/components/attack-countdown"
 import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 import {
   Select,
   SelectContent,
@@ -60,11 +61,35 @@ export default function AttacksPageClient() {
   const [resendingIds, setResendingIds] = useState<Set<number>>(new Set())
   const [methods, setMethods] = useState<any[]>([])
   const [error, setError] = useState("")
+  const [slotInfo, setSlotInfo] = useState<{
+    l4: {
+      global_limit: number | null
+      global_used: number
+      available_slots: number | null
+      has_limit: boolean
+    }
+    l7: {
+      global_limit: number | null
+      global_used: number
+      available_slots: number | null
+      has_limit: boolean
+    }
+  } | null>(null)
 
   useEffect(() => {
     fetchAttacks()
     fetchMethods()
+    fetchSlotInfo()
   }, [currentPage])
+
+  useEffect(() => {
+    // Auto-refresh slot info every 5 seconds
+    const interval = setInterval(() => {
+      fetchSlotInfo()
+    }, 5000)
+    
+    return () => clearInterval(interval)
+  }, [])
 
   // Auto-set port to 443 when L7 method is selected
   useEffect(() => {
@@ -86,6 +111,7 @@ export default function AttacksPageClient() {
       await fetch("/api/attacks/update-status", { method: "POST" })
       // Then fetch updated attacks silently (no loading state)
       fetchAttacks(true, currentPage)
+      fetchSlotInfo()
     }, 5000)
     
     return () => clearInterval(interval)
@@ -198,6 +224,18 @@ export default function AttacksPageClient() {
       }
     } catch (error) {
       console.error("Failed to fetch methods:", error)
+    }
+  }
+
+  const fetchSlotInfo = async () => {
+    try {
+      const response = await fetch("/api/attacks/slots")
+      if (response.ok) {
+        const data = await response.json()
+        setSlotInfo(data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch slot info:", error)
     }
   }
 
@@ -410,6 +448,74 @@ export default function AttacksPageClient() {
           )}
         </Button>
       </div>
+
+      {slotInfo && (slotInfo.l4?.has_limit || slotInfo.l7?.has_limit) && (
+        <Card className="mb-4 border-primary/20 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              <div className="mb-3">
+                <p className="text-sm font-medium">Global Attack Slots</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* L4 Slots */}
+                {slotInfo.l4?.has_limit && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">L4 Slots</p>
+                      <p className="text-sm text-muted-foreground">
+                        {slotInfo.l4?.global_used || 0} / {slotInfo.l4?.global_limit || 0}
+                      </p>
+                    </div>
+                    <Progress 
+                      value={slotInfo.l4?.global_limit ? ((slotInfo.l4.global_used || 0) / slotInfo.l4.global_limit) * 100 : 0}
+                      className={`h-3 ${
+                        slotInfo.l4?.available_slots === 0 
+                          ? '[&>div]:bg-destructive' 
+                          : slotInfo.l4?.available_slots !== null && slotInfo.l4?.available_slots < 5 
+                          ? '[&>div]:bg-yellow-500' 
+                          : slotInfo.l4?.available_slots !== null && slotInfo.l4?.available_slots >= 5
+                          ? '[&>div]:bg-green-500'
+                          : '[&>div]:bg-primary'
+                      }`}
+                    />
+                    {slotInfo.l4?.available_slots === 0 && (
+                      <p className="text-xs text-destructive">No slots available</p>
+                    )}
+                  </div>
+                )}
+
+                {/* L7 Slots */}
+                {slotInfo.l7?.has_limit && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">L7 Slots</p>
+                      <p className="text-sm text-muted-foreground">
+                        {slotInfo.l7?.global_used || 0} / {slotInfo.l7?.global_limit || 0}
+                      </p>
+                    </div>
+                    <Progress 
+                      value={slotInfo.l7?.global_limit ? ((slotInfo.l7.global_used || 0) / slotInfo.l7.global_limit) * 100 : 0}
+                      className={`h-3 ${
+                        slotInfo.l7?.available_slots === 0 
+                          ? '[&>div]:bg-destructive' 
+                          : slotInfo.l7?.available_slots !== null && slotInfo.l7?.available_slots < 5 
+                          ? '[&>div]:bg-yellow-500' 
+                          : slotInfo.l7?.available_slots !== null && slotInfo.l7?.available_slots >= 5
+                          ? '[&>div]:bg-green-500'
+                          : '[&>div]:bg-primary'
+                      }`}
+                    />
+                    {slotInfo.l7?.available_slots === 0 && (
+                      <p className="text-xs text-destructive">No slots available</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="gradient-card hover:shadow-xl transition-all duration-300 group overflow-hidden relative mb-8">
         <div className="shine-effect absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

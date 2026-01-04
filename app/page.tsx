@@ -30,9 +30,9 @@ export default function Home() {
           <div className="gradient-hero absolute inset-0 rounded-3xl -z-10" />
           <div className="text-center space-y-8 relative">
             <HeroTextAnimation delay={200} variant="fade-up">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-4 animate-pulse-glow">
-                <span className="text-sm font-medium">Professional Stress Testing Platform</span>
-              </div>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-4 animate-pulse-glow">
+              <span className="text-sm font-medium">Professional Stress Testing Platform</span>
+            </div>
             </HeroTextAnimation>
             
             <h1 className="text-4xl lg:text-7xl font-bold tracking-tight">
@@ -50,28 +50,28 @@ export default function Home() {
             </h1>
             
             <HeroTextAnimation delay={1600} variant="fade-up">
-              <p className="text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
                 Test your infrastructure with powerful{" "}
                 <span className="font-semibold text-foreground animate-pulse">Layer 4 & Layer 7</span> attack methods. 
                 <br className="hidden sm:block" />
-                Enterprise-grade security with real-time monitoring.
-              </p>
+              Enterprise-grade security with real-time monitoring.
+            </p>
             </HeroTextAnimation>
             
             <HeroTextAnimation delay={2000} variant="fade-up">
-              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
-                <Button size="lg" className="gradient-primary text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" asChild>
-                  <Link href="/register">
-                    Get Started
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-                <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2 border-primary/50 text-foreground hover:bg-primary/10 hover:border-primary hover:text-primary transition-all duration-300" asChild>
-                  <Link href="/pricing">
-                    View Pricing
-                  </Link>
-                </Button>
-              </div>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
+              <Button size="lg" className="gradient-primary text-lg px-8 py-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105" asChild>
+                <Link href="/register">
+                  Get Started
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2 border-primary/50 text-foreground hover:bg-primary/10 hover:border-primary hover:text-primary transition-all duration-300" asChild>
+                <Link href="/pricing">
+                  View Pricing
+                </Link>
+              </Button>
+            </div>
             </HeroTextAnimation>
           </div>
         </section>

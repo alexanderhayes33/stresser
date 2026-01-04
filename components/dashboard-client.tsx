@@ -264,7 +264,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                           <span>Concurrent</span>
                         </div>
                         <div className="text-xl font-semibold">
-                          {profile.currentConcurrent} / {formatLimit(profile.user.max_concurrent)}
+                          {profile.currentConcurrent} / {formatLimit(profile.user.plan?.max_concurrent ?? profile.user.max_concurrent)}
                         </div>
                       </div>
                       <div className="p-3 rounded-lg hover:bg-muted/50 transition-colors">
@@ -275,7 +275,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                           <span>Max Time</span>
                         </div>
                         <div className="text-xl font-semibold">
-                          {formatLimit(profile.user.max_time)}s
+                          {formatLimit(profile.user.plan?.max_time ?? profile.user.max_time)}s
                         </div>
                       </div>
                       <div className="p-3 rounded-lg hover:bg-muted/50 transition-colors">

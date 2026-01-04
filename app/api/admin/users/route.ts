@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { username, password, email, role, is_admin, is_active, points, allowed_methods, max_time, max_concurrent } = body
+    const { username, password, email, role, is_admin, is_active, points, allowed_methods, max_time, max_concurrent, plan_id } = body
 
     if (!username || !password) {
       return NextResponse.json(
@@ -156,8 +156,9 @@ export async function POST(request: NextRequest) {
         allowed_methods: allowed_methods || null,
         max_time: max_time || null,
         max_concurrent: max_concurrent || null,
+        plan_id: plan_id || null,
       })
-      .select('id, username, email, role, is_admin, is_active, points, created_at, updated_at')
+      .select('id, username, email, role, is_admin, is_active, points, plan_id, created_at, updated_at')
       .single()
 
     if (error) {

@@ -17,7 +17,7 @@ export async function GET(
     const supabase = await createClient()
     const { data, error } = await supabase
       .from('users')
-      .select('id, username, email, role, is_admin, is_active, points, allowed_methods, max_time, max_concurrent, created_at, updated_at')
+      .select('id, username, email, role, is_admin, is_active, points, allowed_methods, max_time, max_concurrent, plan_id, plan_expires_at, bypass_global_slot, bypass_cooldown, created_at, updated_at')
       .eq('id', id)
       .single()
 
@@ -47,7 +47,7 @@ export async function PUT(
 
     const { id } = await params
     const body = await request.json()
-    const { username, password, email, role, is_admin, is_active, points, allowed_methods, max_time, max_concurrent } = body
+    const { username, password, email, role, is_admin, is_active, points, allowed_methods, max_time, max_concurrent, plan_id, bypass_global_slot, bypass_cooldown } = body
 
     const supabase = await createClient()
     const updateData: any = {
@@ -84,12 +84,15 @@ export async function PUT(
     if (allowed_methods !== undefined) updateData.allowed_methods = allowed_methods || null
     if (max_time !== undefined) updateData.max_time = max_time || null
     if (max_concurrent !== undefined) updateData.max_concurrent = max_concurrent || null
+    if (plan_id !== undefined) updateData.plan_id = plan_id || null
+    if (bypass_global_slot !== undefined) updateData.bypass_global_slot = bypass_global_slot || false
+    if (bypass_cooldown !== undefined) updateData.bypass_cooldown = bypass_cooldown || false
 
     const { data, error } = await supabase
       .from('users')
       .update(updateData)
       .eq('id', id)
-      .select('id, username, email, role, is_admin, is_active, points, created_at, updated_at')
+      .select('id, username, email, role, is_admin, is_active, points, plan_id, bypass_global_slot, bypass_cooldown, created_at, updated_at')
       .single()
 
     if (error) {

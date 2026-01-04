@@ -27,6 +27,9 @@ interface User {
   allowed_methods: string[] | null
   max_time: number | null
   max_concurrent: number | null
+  plan_id: number | null
+  bypass_global_slot: boolean
+  bypass_cooldown: boolean
 }
 
 export default function UserFormClient({ userId }: { userId?: string }) {
@@ -35,6 +38,7 @@ export default function UserFormClient({ userId }: { userId?: string }) {
   const [loading, setLoading] = useState(!!userId)
   const [saving, setSaving] = useState(false)
   const [methods, setMethods] = useState<any[]>([])
+  const [plans, setPlans] = useState<any[]>([])
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -46,10 +50,14 @@ export default function UserFormClient({ userId }: { userId?: string }) {
     allowed_methods: [] as string[],
     max_time: "",
     max_concurrent: "",
+    plan_id: "",
+    bypass_global_slot: false,
+    bypass_cooldown: false,
   })
 
   useEffect(() => {
     fetchMethods()
+    fetchPlans()
     if (userId) {
       fetchUser()
     }
@@ -64,6 +72,21 @@ export default function UserFormClient({ userId }: { userId?: string }) {
       }
     } catch (error) {
       console.error("Failed to fetch methods:", error)
+    }
+  }
+
+  const fetchPlans = async () => {
+    try {
+      const response = await fetch("/api/plans")
+      if (response.ok) {
+        const data = await response.json()
+        setPlans(data.plans || [])
+        console.log("Plans fetched:", data.plans || [])
+      } else {
+        console.error("Failed to fetch plans:", response.status)
+      }
+    } catch (error) {
+      console.error("Failed to fetch plans:", error)
     }
   }
 
@@ -84,6 +107,9 @@ export default function UserFormClient({ userId }: { userId?: string }) {
           allowed_methods: Array.isArray(user.allowed_methods) ? user.allowed_methods : [],
           max_time: user.max_time?.toString() || "",
           max_concurrent: user.max_concurrent?.toString() || "",
+          plan_id: user.plan_id?.toString() || "",
+          bypass_global_slot: user.bypass_global_slot || false,
+          bypass_cooldown: user.bypass_cooldown || false,
         })
       }
     } catch (error) {
@@ -111,6 +137,9 @@ export default function UserFormClient({ userId }: { userId?: string }) {
         allowed_methods: formData.allowed_methods.length > 0 ? formData.allowed_methods : null,
         max_time: formData.max_time ? parseInt(formData.max_time) : null,
         max_concurrent: formData.max_concurrent ? parseInt(formData.max_concurrent) : null,
+        plan_id: formData.plan_id ? parseInt(formData.plan_id) : null,
+        bypass_global_slot: formData.bypass_global_slot,
+        bypass_cooldown: formData.bypass_cooldown,
       }
 
       // Only include password if it's provided (for new users or when updating)
@@ -225,24 +254,6 @@ export default function UserFormClient({ userId }: { userId?: string }) {
                   setFormData({ ...formData, email: e.target.value })
                 }
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="role" className="text-sm font-medium">
-                  Role
-                </label>
-                <select
-                  id="role"
-                  value={formData.role}
-                  onChange={(e) =>
-                    setFormData({ ...formData, role: e.target.value })
-                  }
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="user">User</option>
-                  <option value="admin">Admin</option>
-                </select>
               </div>
 
               <div className="space-y-2">
@@ -261,9 +272,9 @@ export default function UserFormClient({ userId }: { userId?: string }) {
                     })
                   }
                 />
-              </div>
             </div>
 
+            <div className="space-y-3">
             <div className="flex gap-4">
               <div className="flex items-center space-x-2">
                 <input
@@ -294,6 +305,75 @@ export default function UserFormClient({ userId }: { userId?: string }) {
                   Active
                 </label>
               </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="bypass_global_slot"
+                    checked={formData.bypass_global_slot}
+                    onChange={(e) =>
+                      setFormData({ ...formData, bypass_global_slot: e.target.checked })
+                    }
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <label htmlFor="bypass_global_slot" className="text-sm font-medium">
+                    Bypass Global Slot
+                  </label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="bypass_cooldown"
+                    checked={formData.bypass_cooldown}
+                    onChange={(e) =>
+                      setFormData({ ...formData, bypass_cooldown: e.target.checked })
+                    }
+                    className="h-4 w-4 rounded border-gray-300"
+                  />
+                  <label htmlFor="bypass_cooldown" className="text-sm font-medium">
+                    Bypass Cooldown
+                  </label>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Bypass Global Slot: User can bypass the global concurrent attack limit. Bypass Cooldown: User can bypass cooldown restrictions.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="plan_id" className="text-sm font-medium">
+                Plan
+              </label>
+              {plans.length > 0 ? (
+                <Select
+                  value={formData.plan_id}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, plan_id: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a plan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No plan</SelectItem>
+                    {plans.map((plan) => (
+                      <SelectItem key={plan.id} value={plan.id.toString()}>
+                        {plan.name} - {plan.price} points
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-muted-foreground items-center">
+                  No plans available. Create plans in Admin → Plans first.
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Assign a plan to this user. Leave empty for no plan.
+              </p>
             </div>
 
             <div className="space-y-2">

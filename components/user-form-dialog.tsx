@@ -21,6 +21,8 @@ interface User {
   allowed_methods: string[] | null
   max_time: number | null
   max_concurrent: number | null
+  bypass_global_slot: boolean
+  bypass_cooldown: boolean
 }
 
 interface UserFormDialogProps {
@@ -43,6 +45,8 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
     allowed_methods: [] as string[],
     max_time: "",
     max_concurrent: "",
+    bypass_global_slot: false,
+    bypass_cooldown: false,
   })
 
   useEffect(() => {
@@ -81,6 +85,8 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
           allowed_methods: Array.isArray(user.allowed_methods) ? user.allowed_methods : [],
           max_time: user.max_time?.toString() || "",
           max_concurrent: user.max_concurrent?.toString() || "",
+          bypass_global_slot: user.bypass_global_slot || false,
+          bypass_cooldown: user.bypass_cooldown || false,
         })
       }
     } catch (error) {
@@ -106,6 +112,8 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
         allowed_methods: formData.allowed_methods.length > 0 ? formData.allowed_methods : null,
         max_time: formData.max_time ? parseInt(formData.max_time) : null,
         max_concurrent: formData.max_concurrent ? parseInt(formData.max_concurrent) : null,
+        bypass_global_slot: formData.bypass_global_slot,
+        bypass_cooldown: formData.bypass_cooldown,
       }
 
       // Only include password if it's provided (for new users or when updating)
@@ -259,53 +267,73 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
         />
       </div>
 
-      <div className="space-y-2">
-        <label htmlFor="role" className="text-sm font-medium">
-          Role
-        </label>
-        <select
-          id="role"
-          value={formData.role}
-          onChange={(e) =>
-            setFormData({ ...formData, role: e.target.value })
-          }
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <option value="user">User</option>
-          <option value="admin">Admin</option>
-        </select>
-      </div>
+      <div className="space-y-3">
+        <div className="flex gap-4">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="is_admin"
+              checked={formData.is_admin}
+              onChange={(e) =>
+                setFormData({ ...formData, is_admin: e.target.checked })
+              }
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            <label htmlFor="is_admin" className="text-sm font-medium">
+              Admin
+            </label>
+          </div>
 
-      <div className="flex gap-4">
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="is_admin"
-            checked={formData.is_admin}
-            onChange={(e) =>
-              setFormData({ ...formData, is_admin: e.target.checked })
-            }
-            className="h-4 w-4 rounded border-gray-300"
-          />
-          <label htmlFor="is_admin" className="text-sm font-medium">
-            Admin
-          </label>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="is_active"
+              checked={formData.is_active}
+              onChange={(e) =>
+                setFormData({ ...formData, is_active: e.target.checked })
+              }
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            <label htmlFor="is_active" className="text-sm font-medium">
+              Active
+            </label>
+          </div>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="is_active"
-            checked={formData.is_active}
-            onChange={(e) =>
-              setFormData({ ...formData, is_active: e.target.checked })
-            }
-            className="h-4 w-4 rounded border-gray-300"
-          />
-          <label htmlFor="is_active" className="text-sm font-medium">
-            Active
-          </label>
+        <div className="flex gap-4">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="bypass_global_slot"
+              checked={formData.bypass_global_slot}
+              onChange={(e) =>
+                setFormData({ ...formData, bypass_global_slot: e.target.checked })
+              }
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            <label htmlFor="bypass_global_slot" className="text-sm font-medium">
+              Bypass Global Slot
+            </label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="bypass_cooldown"
+              checked={formData.bypass_cooldown}
+              onChange={(e) =>
+                setFormData({ ...formData, bypass_cooldown: e.target.checked })
+              }
+              className="h-4 w-4 rounded border-gray-300"
+            />
+            <label htmlFor="bypass_cooldown" className="text-sm font-medium">
+              Bypass Cooldown
+            </label>
+          </div>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Bypass Global Slot: User can bypass the global concurrent attack limit. Bypass Cooldown: User can bypass cooldown restrictions.
+        </p>
       </div>
 
       <div className="space-y-2">
