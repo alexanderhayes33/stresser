@@ -61,9 +61,14 @@ export async function POST(request: NextRequest) {
 
     // Set cookie
     const cookieStore = await cookies()
+    // Check if request is over HTTPS (for production behind proxy)
+    const isSecure = request.url.startsWith('https://') || 
+                     request.headers.get('x-forwarded-proto') === 'https' ||
+                     (process.env.NODE_ENV === 'production' && process.env.FORCE_SECURE_COOKIES === 'true')
+    
     cookieStore.set('auth-token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecure,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',

@@ -48,20 +48,29 @@ export default function RegisterPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ username, password, confirmPassword }),
+        credentials: 'include', // Important for cookies
       })
 
-      const data = await response.json()
-
       if (!response.ok) {
-        setError(data.error || "Registration failed")
+        let errorMessage = "Registration failed"
+        try {
+          const data = await response.json()
+          errorMessage = data.error || errorMessage
+        } catch {
+          errorMessage = `Server error: ${response.status} ${response.statusText}`
+        }
+        setError(errorMessage)
         setLoading(false)
         return
       }
 
+      const data = await response.json()
+
       router.push("/dashboard")
       router.refresh()
-    } catch (err) {
-      setError("An error occurred. Please try again.")
+    } catch (err: any) {
+      console.error('Register error:', err)
+      setError(err.message || "An error occurred. Please try again.")
       setLoading(false)
     }
   }
