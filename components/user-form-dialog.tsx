@@ -105,7 +105,6 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
       const method = userId ? "PUT" : "POST"
 
       const payload: any = {
-        username: formData.username,
         role: formData.role,
         is_admin: formData.is_admin,
         is_active: formData.is_active,
@@ -114,6 +113,11 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
         max_concurrent: formData.max_concurrent ? parseInt(formData.max_concurrent) : null,
         bypass_global_slot: formData.bypass_global_slot,
         bypass_cooldown: formData.bypass_cooldown,
+      }
+
+      // Only include username for new users
+      if (!userId) {
+        payload.username = formData.username
       }
 
       // Only include password if it's provided (for new users or when updating)
@@ -246,9 +250,16 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
           onChange={(e) =>
             setFormData({ ...formData, username: e.target.value })
           }
-          required
+          required={!userId}
+          disabled={!!userId}
           minLength={3}
+          className={userId ? "bg-muted cursor-not-allowed" : ""}
         />
+        {userId && (
+          <p className="text-xs text-muted-foreground">
+            Username cannot be changed after user creation.
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
