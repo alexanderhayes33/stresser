@@ -4,19 +4,11 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Save, Loader2, RefreshCw, Copy, Check } from "lucide-react"
+import { Save, Loader2 } from "lucide-react"
 import { useAlert } from "@/lib/use-alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 
 interface User {
   id: number
@@ -44,9 +36,6 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
   const [loading, setLoading] = useState(!!userId)
   const [saving, setSaving] = useState(false)
   const [methods, setMethods] = useState<any[]>([])
-  const [generatedPassword, setGeneratedPassword] = useState<string>("")
-  const [showPasswordDialog, setShowPasswordDialog] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -132,15 +121,12 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
       }
 
       // Only include password if it's provided (for new users or when updating)
-      if (!userId) {
+      if (!userId || formData.password) {
         if (!formData.password) {
           await showAlert("Password is required", "Validation Error")
           setSaving(false)
           return
         }
-        payload.password = formData.password
-      } else if (formData.password) {
-        // For existing users, only include password if it was generated
         payload.password = formData.password
       }
 
@@ -163,30 +149,6 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
       await showAlert("Failed to save user", "Error")
     } finally {
       setSaving(false)
-    }
-  }
-
-  const generatePassword = () => {
-    const length = 12
-    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
-    let password = ""
-    for (let i = 0; i < length; i++) {
-      password += charset.charAt(Math.floor(Math.random() * charset.length))
-    }
-    setGeneratedPassword(password)
-    setFormData((prev) => ({ ...prev, password }))
-    setShowPasswordDialog(true)
-    setCopied(false)
-  }
-
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(generatedPassword)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (error) {
-      console.error("Failed to copy:", error)
-      await showAlert("Failed to copy password", "Error")
     }
   }
 
@@ -302,35 +264,18 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
 
       <div className="space-y-2">
         <label htmlFor="password" className="text-sm font-medium">
-          Password
+          Password {userId && "(leave empty to keep current password)"}
         </label>
-        {userId ? (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={generatePassword}
-            className="w-full"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Reset Password
-          </Button>
-        ) : (
-          <Input
-            id="password"
-            type="password"
-            value={formData.password}
-            onChange={(e) =>
-              setFormData({ ...formData, password: e.target.value })
-            }
-            required
-            minLength={6}
-          />
-        )}
-        {userId && formData.password && (
-          <p className="text-xs text-muted-foreground">
-            New password has been generated. Click "Reset Password" to generate a new one.
-          </p>
-        )}
+        <Input
+          id="password"
+          type="password"
+          value={formData.password}
+          onChange={(e) =>
+            setFormData({ ...formData, password: e.target.value })
+          }
+          required={!userId}
+          minLength={6}
+        />
       </div>
 
       <div className="space-y-3">
@@ -589,46 +534,6 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
         </Button>
       </div>
       <AlertComponent />
-
-      <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>New Password Generated</DialogTitle>
-            <DialogDescription>
-              Please copy this password and share it with the user. This password will be saved when you click "Save".
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="flex items-center gap-2">
-              <Input
-                value={generatedPassword}
-                readOnly
-                className="font-mono text-sm"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={copyToClipboard}
-              >
-                {copied ? (
-                  <Check className="h-4 w-4 text-green-500" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-            {copied && (
-              <p className="text-sm text-green-500">Copied to clipboard!</p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setShowPasswordDialog(false)}>
-              Got it
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </form>
   )
 }
