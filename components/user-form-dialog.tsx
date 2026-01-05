@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Save, Loader2 } from "lucide-react"
+import { Save, Loader2, RefreshCw, Copy, Check } from "lucide-react"
 import { useAlert } from "@/lib/use-alert"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
@@ -36,6 +36,8 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
   const [loading, setLoading] = useState(!!userId)
   const [saving, setSaving] = useState(false)
   const [methods, setMethods] = useState<any[]>([])
+  const [generatedPassword, setGeneratedPassword] = useState("")
+  const [copied, setCopied] = useState(false)
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -120,13 +122,17 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
         payload.username = formData.username
       }
 
-      // Only include password if it's provided (for new users or when updating)
-      if (!userId || formData.password) {
+      // Only include password if it's provided
+      if (!userId) {
+        // New user - password is required
         if (!formData.password) {
           await showAlert("Password is required", "Validation Error")
           setSaving(false)
           return
         }
+        payload.password = formData.password
+      } else if (formData.password) {
+        // Edit user - only include password if reset was clicked
         payload.password = formData.password
       }
 
@@ -225,6 +231,26 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
     return methods.filter((m) => m.category === category)
   }
 
+  const generatePassword = () => {
+    const length = 12
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*"
+    let password = ""
+    for (let i = 0; i < length; i++) {
+      password += charset.charAt(Math.floor(Math.random() * charset.length))
+    }
+    setGeneratedPassword(password)
+    setFormData({ ...formData, password })
+    setCopied(false)
+  }
+
+  const copyToClipboard = async () => {
+    if (generatedPassword) {
+      await navigator.clipboard.writeText(generatedPassword)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -262,21 +288,65 @@ export default function UserFormDialog({ userId, onSuccess, onCancel }: UserForm
         )}
       </div>
 
-      <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium">
-          Password {userId && "(leave empty to keep current password)"}
-        </label>
-        <Input
-          id="password"
-          type="password"
-          value={formData.password}
-          onChange={(e) =>
-            setFormData({ ...formData, password: e.target.value })
-          }
-          required={!userId}
-          minLength={6}
-        />
-      </div>
+      {userId ? (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Password</label>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={generatePassword}
+              className="flex-1"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Reset Password
+            </Button>
+          </div>
+          {generatedPassword && (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  type="text"
+                  value={generatedPassword}
+                  readOnly
+                  className="font-mono text-sm"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={copyToClipboard}
+                >
+                  {copied ? (
+                    <Check className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {copied ? "Copied to clipboard!" : "Click copy button to copy password"}
+              </p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <label htmlFor="password" className="text-sm font-medium">
+            Password
+          </label>
+          <Input
+            id="password"
+            type="password"
+            value={formData.password}
+            onChange={(e) =>
+              setFormData({ ...formData, password: e.target.value })
+            }
+            required
+            minLength={6}
+          />
+        </div>
+      )}
 
       <div className="space-y-3">
         <div className="flex gap-4">
