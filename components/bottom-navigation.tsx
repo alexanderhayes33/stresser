@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -11,7 +12,9 @@ import {
   Settings,
   Shield,
   Home,
+  Wallet,
 } from "lucide-react"
+import { TopupDialog } from "@/components/topup-dialog"
 import type { User as UserType } from "@/lib/get-user"
 
 interface BottomNavigationProps {
@@ -33,10 +36,12 @@ const navigation: Array<{
 
 export function BottomNavigation({ user }: BottomNavigationProps) {
   const pathname = usePathname()
+  const [topupOpen, setTopupOpen] = useState(false)
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:hidden">
-      <div className="flex items-center justify-between h-16 relative px-4">
+    <>
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:hidden">
+        <div className="flex items-center justify-between h-16 relative px-4">
         {navigation.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href + "/"))
@@ -88,6 +93,15 @@ export function BottomNavigation({ user }: BottomNavigationProps) {
       </div>
       <div className="absolute -top-12 right-4 flex items-center gap-2">
         <ThemeToggle />
+        <button
+          onClick={() => setTopupOpen(true)}
+          className={cn(
+            "flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium transition-colors shadow-lg",
+            "bg-primary text-primary-foreground hover:bg-primary/90"
+          )}
+        >
+          <Wallet className="h-4 w-4" />
+        </button>
         {user.is_admin && (
           <Link
             href="/admin"
@@ -103,7 +117,17 @@ export function BottomNavigation({ user }: BottomNavigationProps) {
           </Link>
         )}
       </div>
-    </nav>
+      </nav>
+      <TopupDialog
+        open={topupOpen}
+        onOpenChange={setTopupOpen}
+        onSuccess={() => {
+          if (typeof window !== "undefined") {
+            window.location.reload()
+          }
+        }}
+      />
+    </>
   )
 }
 

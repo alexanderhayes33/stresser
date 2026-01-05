@@ -120,6 +120,69 @@ export default function MethodsListClient() {
     setEditingMethodId(undefined)
   }
 
+  // แบ่ง methods ตาม category
+  const l4Methods = methods.filter((m) => (m.category || "L4") === "L4").sort((a, b) => a.display_name.localeCompare(b.display_name))
+  const l7Methods = methods.filter((m) => m.category === "L7").sort((a, b) => a.display_name.localeCompare(b.display_name))
+
+  const renderMethodsTable = (methodsList: Method[], category: string) => (
+    <div className="overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Display Name</TableHead>
+            <TableHead>Description</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {methodsList.map((method) => (
+            <TableRow key={method.id}>
+              <TableCell className="font-mono text-sm">{method.name}</TableCell>
+              <TableCell className="font-semibold">{method.display_name}</TableCell>
+              <TableCell>{method.description || "-"}</TableCell>
+              <TableCell>
+                {method.is_active ? (
+                  <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
+                    Active
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
+                    Inactive
+                  </Badge>
+                )}
+              </TableCell>
+              <TableCell className="text-muted-foreground">
+                {new Date(method.created_at).toLocaleDateString()}
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleEditMethod(method.id)}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(method.id)}
+                    disabled={deleting === method.id}
+                  >
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  )
+
   return (
     <main className="container mx-auto px-4 py-8">
       <div className="mb-8 flex items-center justify-between">
@@ -149,88 +212,90 @@ export default function MethodsListClient() {
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>All Methods</CardTitle>
-          <CardDescription>
-            List of all attack methods
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="space-y-2">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : methods.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No methods found
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Display Name</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {methods.map((method) => (
-                    <TableRow key={method.id}>
-                      <TableCell className="font-medium">{method.id}</TableCell>
-                      <TableCell className="font-mono text-sm">{method.name}</TableCell>
-                      <TableCell>{method.display_name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={method.category === "L7" ? "bg-blue-500/10 text-blue-500" : "bg-green-500/10 text-green-500"}>
-                          {method.category || "L4"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{method.description || "-"}</TableCell>
-                      <TableCell>
-                        {method.is_active ? (
-                          <span className="text-green-500">Active</span>
-                        ) : (
-                          <span className="text-red-500">Inactive</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(method.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditMethod(method.id)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(method.id)}
-                            disabled={deleting === method.id}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {loading ? (
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : methods.length === 0 ? (
+        <Card>
+          <CardContent className="text-center py-8 text-muted-foreground">
+            No methods found
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-6">
+          {/* L4 Section */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CardTitle>L4 Methods</CardTitle>
+                <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
+                  {l4Methods.length} methods
+                </Badge>
+              </div>
+              <CardDescription>
+                Layer 4 attack methods
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {l4Methods.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No L4 methods found
+                </div>
+              ) : (
+                renderMethodsTable(l4Methods, "L4")
+              )}
+            </CardContent>
+          </Card>
+
+          {/* L7 Section */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <CardTitle>L7 Methods</CardTitle>
+                <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+                  {l7Methods.length} methods
+                </Badge>
+              </div>
+              <CardDescription>
+                Layer 7 attack methods
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {l7Methods.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No L7 methods found
+                </div>
+              ) : (
+                renderMethodsTable(l7Methods, "L7")
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">

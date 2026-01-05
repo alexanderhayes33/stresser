@@ -8,11 +8,7 @@ function PaymentPageContent() {
   return <PaymentClient />
 }
 
-export default async function PaymentPage({
-  searchParams,
-}: {
-  searchParams: { planId?: string }
-}) {
+export default async function PaymentPage() {
   const user = await getUser()
 
   if (!user) {

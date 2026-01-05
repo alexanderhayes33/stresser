@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/dialog"
 import { Check, Infinity, ShoppingCart, CreditCard, Loader2, Zap, Clock, Target, Shield, Wallet } from "lucide-react"
 import { CheckmarkAnimation } from "@/components/checkmark-animation"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 interface Plan {
   id: number
@@ -38,11 +37,9 @@ export default function PricingPageClient() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [voucherLink, setVoucherLink] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<"balance" | "truewallet">("balance")
   const [userBalance, setUserBalance] = useState<number>(0)
 
   useEffect(() => {
@@ -89,15 +86,8 @@ export default function PricingPageClient() {
   const handlePurchaseClick = (plan: Plan) => {
     setSelectedPlan(plan)
     setDialogOpen(true)
-    setVoucherLink("")
     setError("")
     setSuccess(false)
-    // ตั้งค่า payment method ตาม balance
-    if (userBalance >= (plan.price || 0)) {
-      setPaymentMethod("balance")
-    } else {
-      setPaymentMethod("truewallet")
-    }
   }
 
   const handlePaymentSubmit = async (e: React.FormEvent) => {
@@ -108,83 +98,30 @@ export default function PricingPageClient() {
     setSubmitting(true)
 
     try {
-      if (paymentMethod === "balance") {
-        // ใช้ balance
-        const response = await fetch("/api/payment/use-balance", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            planId: selectedPlan.id,
-          }),
-        })
+      // ใช้ balance เท่านั้น
+      const response = await fetch("/api/payment/use-balance", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          planId: selectedPlan.id,
+        }),
+      })
 
-        const data = await response.json()
+      const data = await response.json()
 
-        if (response.ok && data.success) {
-          setSuccess(true)
-          setUserBalance(data.balance || 0)
-          // Refresh user profile to get updated balance
-          const profileResponse = await fetch("/api/user/profile")
-          if (profileResponse.ok) {
-            const profileData = await profileResponse.json()
-            setUserBalance(profileData.user?.balance || 0)
-          }
-        } else {
-          setError(data.message || data.error || "Payment processing failed")
+      if (response.ok && data.success) {
+        setSuccess(true)
+        setUserBalance(data.balance || 0)
+        // Refresh user profile to get updated balance
+        const profileResponse = await fetch("/api/user/profile")
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json()
+          setUserBalance(profileData.user?.balance || 0)
         }
       } else {
-        // ใช้ TrueWallet
-        if (!voucherLink.trim()) {
-          setError("Please provide the gift envelope link")
-          setSubmitting(false)
-          return
-        }
-
-        const response = await fetch("/api/payment/topup", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            voucherLink: voucherLink.trim(),
-            planId: selectedPlan.id,
-          }),
-        })
-
-        const data = await response.json()
-
-        // ตรวจสอบว่า response.ok และ data.success
-        if (response.ok && data.success) {
-          // ซื้อแพลนสำเร็จ
-          setSuccess(true)
-          setVoucherLink("")
-          // Refresh user profile to get updated balance
-          const profileResponse = await fetch("/api/user/profile")
-          if (profileResponse.ok) {
-            const profileData = await profileResponse.json()
-            setUserBalance(profileData.user?.balance || 0)
-          } else if (data.balance !== undefined) {
-            setUserBalance(data.balance)
-          }
-        } else if (response.ok && !data.success && data.message && data.message.includes("Added to balance")) {
-          // เพิ่มเป็น balance ไม่ใช่ซื้อแพลน (success: false)
-          setSuccess(false)
-          setVoucherLink("")
-          // Refresh user profile to get updated balance
-          const profileResponse = await fetch("/api/user/profile")
-          if (profileResponse.ok) {
-            const profileData = await profileResponse.json()
-            setUserBalance(profileData.user?.balance || 0)
-          } else if (data.balance !== undefined) {
-            setUserBalance(data.balance)
-          }
-          // แสดงข้อความว่าเพิ่มเป็น balance แล้ว
-          setError(data.message || "Amount added to balance")
-        } else {
-          setError(data.message || data.error || "Payment processing failed")
-        }
+        setError(data.message || data.error || "Payment processing failed")
       }
     } catch (error: any) {
       console.error("Failed to process payment:", error)
@@ -223,8 +160,8 @@ export default function PricingPageClient() {
             </DialogTitle>
             <DialogDescription>
               {selectedPlan
-                ? `Purchase ${selectedPlan.name} plan - ฿${selectedPlan.price?.toFixed(2)}`
-                : "Enter your TrueWallet Gift Link to proceed with payment"}
+                ? `Purchase ${selectedPlan.name} plan - ฿${selectedPlan.price?.toFixed(2)} using your balance`
+                : "Purchase plan using your balance"}
             </DialogDescription>
           </DialogHeader>
           {success ? (
@@ -318,54 +255,7 @@ export default function PricingPageClient() {
             </div>
           ) : (
             <form onSubmit={handlePaymentSubmit} className="space-y-4">
-              <div className="space-y-3">
-                <Label>Payment Method</Label>
-                <RadioGroup
-                  value={paymentMethod}
-                  onValueChange={(value) => setPaymentMethod(value as "balance" | "truewallet")}
-                  className="space-y-2"
-                >
-                  <label
-                    htmlFor="balance"
-                    className="flex items-center space-x-2 p-3 border rounded-md hover:bg-accent cursor-pointer transition-colors"
-                  >
-                    <RadioGroupItem value="balance" id="balance" className="cursor-pointer" />
-                    <div className="flex-1 flex items-center gap-2 cursor-pointer">
-                      <Wallet className="h-4 w-4" />
-                      <span>Use Balance</span>
-                      <span className="ml-auto text-sm text-muted-foreground">
-                        (฿{userBalance.toFixed(2)})
-                      </span>
-                    </div>
-                  </label>
-                  <label
-                    htmlFor="truewallet"
-                    className="flex items-center space-x-2 p-3 border rounded-md hover:bg-accent cursor-pointer transition-colors"
-                  >
-                    <RadioGroupItem value="truewallet" id="truewallet" className="cursor-pointer" />
-                    <div className="flex-1 flex items-center gap-2 cursor-pointer">
-                      <CreditCard className="h-4 w-4" />
-                      <span>TrueWallet Gift Link</span>
-                    </div>
-                  </label>
-                </RadioGroup>
-              </div>
-
-              {paymentMethod === "truewallet" && (
-                <div className="space-y-2">
-                  <Label htmlFor="voucherLink">TrueWallet Gift Link</Label>
-                  <Input
-                    id="voucherLink"
-                    type="text"
-                    value={voucherLink}
-                    onChange={(e) => setVoucherLink(e.target.value)}
-                    placeholder="https://gift.truemoney.com/campaign/?v=..."
-                    required={paymentMethod === "truewallet"}
-                  />
-                </div>
-              )}
-
-              {paymentMethod === "balance" && selectedPlan && (
+              {selectedPlan && (
                 <div className="p-3 rounded-md bg-muted/50 text-sm">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-muted-foreground">Plan Price:</span>
@@ -382,9 +272,27 @@ export default function PricingPageClient() {
                     </span>
                   </div>
                   {userBalance < (selectedPlan.price || 0) && (
-                    <p className="text-xs text-destructive mt-2">
-                      Insufficient balance. Please use TrueWallet or top up your balance first.
-                    </p>
+                    <div className="mt-3 p-2 rounded-md bg-destructive/10 border border-destructive/20">
+                      <p className="text-xs text-destructive font-medium mb-1">
+                        Insufficient balance
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Please top up your balance first using TrueWallet gift envelope.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                          setDialogOpen(false)
+                          router.push("/payment")
+                        }}
+                      >
+                        <CreditCard className="mr-2 h-3 w-3" />
+                        Go to Top Up
+                      </Button>
+                    </div>
                   )}
                 </div>
               )}
@@ -406,24 +314,15 @@ export default function PricingPageClient() {
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={submitting || (paymentMethod === "balance" && userBalance < (selectedPlan?.price || 0))} 
+                  disabled={submitting || userBalance < (selectedPlan?.price || 0)} 
                   className="flex-1"
                 >
                   {submitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
-                      {paymentMethod === "balance" ? (
-                        <>
-                          <Wallet className="mr-2 h-4 w-4" />
-                          Pay with Balance
-                        </>
-                      ) : (
-                        <>
-                          <CreditCard className="mr-2 h-4 w-4" />
-                          Pay Now
-                        </>
-                      )}
+                      <Wallet className="mr-2 h-4 w-4" />
+                      Pay with Balance
                     </>
                   )}
                 </Button>

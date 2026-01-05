@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -13,8 +14,10 @@ import {
   Shield,
   CreditCard,
   Home,
+  Wallet,
 } from "lucide-react"
 import { SaturnHubLogo } from "@/components/saturn-hub-logo"
+import { TopupDialog } from "@/components/topup-dialog"
 import type { User as UserType } from "@/lib/get-user"
 import { cn } from "@/lib/utils"
 
@@ -33,6 +36,7 @@ const navigation = [
 
 export function Sidebar({ user, onLogout }: SidebarProps) {
   const pathname = usePathname()
+  const [topupOpen, setTopupOpen] = useState(false)
 
   const SidebarContent = ({ onItemClick }: { onItemClick?: () => void }) => (
     <div className="flex h-full flex-col">
@@ -98,6 +102,18 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
             </p>
           </div>
         </div>
+        <Button
+          variant="default"
+          size="sm"
+          className="w-full mb-2 gap-2"
+          onClick={() => {
+            setTopupOpen(true)
+            if (onItemClick) onItemClick()
+          }}
+        >
+          <Wallet className="h-4 w-4" />
+          Top Up Balance
+        </Button>
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <Button
@@ -122,6 +138,16 @@ export function Sidebar({ user, onLogout }: SidebarProps) {
       </aside>
 
       {/* Mobile - No sidebar, use bottom navigation instead */}
+      <TopupDialog
+        open={topupOpen}
+        onOpenChange={setTopupOpen}
+        onSuccess={() => {
+          // Refresh page to update balance
+          if (typeof window !== "undefined") {
+            window.location.reload()
+          }
+        }}
+      />
     </>
   )
 }

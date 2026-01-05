@@ -11,7 +11,6 @@ import {
   validatePlan,
   getIdempotencyKey,
 } from '@/lib/security'
-import { redeemVoucherAndPurchasePlanAtomic } from '@/lib/payment-security'
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { voucherLink, planId } = body
+    const { voucherLink } = body
 
     if (!voucherLink) {
       return NextResponse.json(
@@ -61,17 +60,6 @@ export async function POST(request: NextRequest) {
         { error: 'Voucher already used' },
         { status: 400 }
       )
-    }
-
-    // Validate plan if provided
-    if (planId) {
-      const planValidation = await validatePlan(planId)
-      if (!planValidation.valid) {
-        return NextResponse.json(
-          { error: planValidation.error || 'Invalid plan' },
-          { status: 400 }
-        )
-      }
     }
 
     // ดึงเบอร์วอเลทจาก settings
@@ -106,7 +94,7 @@ export async function POST(request: NextRequest) {
       if (amount <= 0) {
         await supabase.from('payment_history').insert({
           user_id: user.id,
-          plan_id: planId || null,
+          plan_id: null,
           amount: 0,
           voucher_code: voucherCode,
           status: 'FAILED',
@@ -120,29 +108,62 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      // Use atomic function to prevent race conditions
-      const purchaseResult = await redeemVoucherAndPurchasePlanAtomic(
-        user.id,
-        voucherCode,
-        planId || null,
-        amount
-      )
+      // Add amount to balance only (no plan purchase)
+      const currentBalance = oldUserState?.balance ? parseFloat(String(oldUserState.balance)) : 0
+      const newBalance = currentBalance + amount
 
-      if (!purchaseResult.success) {
-        // Log failed payment
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          balance: newBalance,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+
+      if (updateError) {
         await supabase.from('payment_history').insert({
           user_id: user.id,
-          plan_id: planId || null,
+          plan_id: null,
           amount: amount,
           voucher_code: voucherCode,
           status: 'FAILED',
-          reason: purchaseResult.error || 'Payment processing failed',
+          reason: 'Failed to update balance',
           created_at: new Date().toISOString(),
         })
 
         const response = {
           success: false,
-          error: purchaseResult.error || 'Payment processing failed',
+          error: 'Failed to update balance',
+        }
+
+        await storeIdempotency(idempotencyKey, response)
+        return NextResponse.json(response, { status: 400 })
+      }
+
+      // Record payment history
+      const { error: paymentError } = await supabase.from('payment_history').insert({
+        user_id: user.id,
+        plan_id: null,
+        amount: amount,
+        voucher_code: voucherCode,
+        status: 'SUCCESS',
+        reason: 'Amount added to balance',
+        created_at: new Date().toISOString(),
+      })
+
+      if (paymentError) {
+        // Rollback balance update
+        await supabase
+          .from('users')
+          .update({
+            balance: currentBalance,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id)
+
+        const response = {
+          success: false,
+          error: 'Failed to record payment',
         }
 
         await storeIdempotency(idempotencyKey, response)
@@ -168,15 +189,10 @@ export async function POST(request: NextRequest) {
       )
 
       const response = {
-        success: purchaseResult.data?.excessAmount === undefined || purchaseResult.data.excessAmount === 0,
+        success: true,
         amount: amount,
-        balance: purchaseResult.data?.balance || 0,
-        message:
-          purchaseResult.data?.excessAmount && purchaseResult.data.excessAmount > 0
-            ? `Payment successful! Plan activated. Excess amount added to balance: ฿${purchaseResult.data.excessAmount.toFixed(2)}. Your balance: ฿${purchaseResult.data.balance.toFixed(2)}`
-            : purchaseResult.data?.excessAmount === undefined
-              ? `Amount added to balance. Your balance: ฿${purchaseResult.data.balance.toFixed(2)}`
-              : `Payment successful! Plan activated.`,
+        balance: newBalance,
+        message: `Amount added to balance. Your balance: ฿${newBalance.toFixed(2)}`,
       }
 
       await storeIdempotency(idempotencyKey, response)
@@ -185,7 +201,7 @@ export async function POST(request: NextRequest) {
       // บันทึกประวัติการล้มเหลว
       await supabase.from('payment_history').insert({
         user_id: user.id,
-        plan_id: planId || null,
+        plan_id: null,
         amount: 0,
         voucher_code: voucherCode,
         status: 'FAILED',

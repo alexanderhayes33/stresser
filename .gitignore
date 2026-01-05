@@ -35,9 +35,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# exclude markdown and sql files (except deployment docs)
+# exclude markdown and sql files
 *.md
-!DEPLOYMENT.md
 *.sql
 
 # exclude zip files

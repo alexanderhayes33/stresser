@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Activity, Target, Clock, Shield, CreditCard, Users, Zap, Infinity, Wallet } from "lucide-react"
+import { TopupDialog } from "@/components/topup-dialog"
 import type { User } from "@/lib/get-user"
 
 interface DashboardClientProps {
@@ -49,6 +51,7 @@ interface UserProfile {
 
 export default function DashboardClient({ user }: DashboardClientProps) {
   const [loading, setLoading] = useState(true)
+  const [topupOpen, setTopupOpen] = useState(false)
   const [stats, setStats] = useState({
     totalAttacks: 0,
     activeAttacks: 0,
@@ -214,9 +217,18 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                 </CardHeader>
                 <CardContent className="relative z-10">
                   <div className="text-3xl font-bold gradient-text">฿{profile.user.balance?.toFixed(2) || "0.00"}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1 mb-2">
                     Available balance
                   </p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setTopupOpen(true)}
+                  >
+                    <Wallet className="mr-2 h-3 w-3" />
+                    Top Up
+                  </Button>
                 </CardContent>
               </Card>
             )}
@@ -384,6 +396,25 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           )}
         </div>
       )}
+      <TopupDialog
+        open={topupOpen}
+        onOpenChange={setTopupOpen}
+        onSuccess={() => {
+          // Refresh data
+          const fetchData = async () => {
+            try {
+              const profileResponse = await fetch("/api/user/profile")
+              if (profileResponse.ok) {
+                const profileData = await profileResponse.json()
+                setProfile(profileData)
+              }
+            } catch (error) {
+              console.error("Failed to fetch profile:", error)
+            }
+          }
+          fetchData()
+        }}
+      />
     </main>
   )
 }

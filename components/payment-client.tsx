@@ -9,48 +9,20 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Loader2, CreditCard, ArrowLeft } from "lucide-react"
 
-interface Plan {
-  id: number
-  name: string
-  price: number | null
-}
 
 export default function PaymentClient() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const planId = searchParams.get('planId')
   
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [plan, setPlan] = useState<Plan | null>(null)
   const [voucherLink, setVoucherLink] = useState("")
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  const [newBalance, setNewBalance] = useState<number | null>(null)
 
   useEffect(() => {
-    if (planId) {
-      fetchPlan()
-    } else {
-      setLoading(false)
-    }
-  }, [planId])
-
-  const fetchPlan = async () => {
-    try {
-      const response = await fetch(`/api/plans`)
-      if (response.ok) {
-        const data = await response.json()
-        const foundPlan = data.plans.find((p: Plan) => p.id === parseInt(planId || '0'))
-        if (foundPlan) {
-          setPlan(foundPlan)
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch plan:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+    setLoading(false)
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -65,7 +37,6 @@ export default function PaymentClient() {
         },
         body: JSON.stringify({
           voucherLink: voucherLink.trim(),
-          planId: planId ? parseInt(planId) : null,
         }),
       })
 
@@ -73,10 +44,11 @@ export default function PaymentClient() {
 
       if (response.ok && data.success) {
         setSuccess(true)
+        setNewBalance(data.balance || null)
         setVoucherLink("")
         setTimeout(() => {
           router.push("/dashboard")
-        }, 2000)
+        }, 3000)
       } else {
         setError(data.message || data.error || "Payment processing failed")
       }
@@ -107,11 +79,9 @@ export default function PaymentClient() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
         </Button>
-        <h1 className="text-2xl lg:text-3xl font-bold mb-2">Payment</h1>
+        <h1 className="text-2xl lg:text-3xl font-bold mb-2">Top Up Balance</h1>
         <p className="text-sm lg:text-base text-muted-foreground">
-          {plan
-            ? `Payment for ${plan.name} plan - ฿${plan.price?.toFixed(2)}`
-            : "Top up with TrueWallet gift envelope"}
+          Top up your balance with TrueWallet gift envelope
         </p>
       </div>
 
@@ -130,8 +100,13 @@ export default function PaymentClient() {
             <div className="text-center py-8">
               <div className="text-4xl mb-4">✅</div>
               <h3 className="text-xl font-bold mb-2 text-green-600">
-                Payment Successful!
+                Top Up Successful!
               </h3>
+              {newBalance !== null && (
+                <p className="text-lg font-semibold mb-2">
+                  Your new balance: ฿{newBalance.toFixed(2)}
+                </p>
+              )}
               <p className="text-muted-foreground">
                 Redirecting to Dashboard...
               </p>
