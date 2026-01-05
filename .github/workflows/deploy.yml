@@ -20,10 +20,12 @@ jobs:
           timeout: 30s
           script: |
             cd /home/Admin/stresser
+            git config --global --add safe.directory /home/Admin/stresser
+            sudo chown -R Admin:Admin /home/Admin/stresser
             git pull origin main
-            rm -rf node_modules package-lock.json
+            rm -rf node_modules package-lock.json .next
             npm install --legacy-peer-deps
             npm run build
-            pm2 restart stresser
-            pm2 save
+            sudo -u Admin pm2 restart stresser || pm2 restart stresser
+            sudo -u Admin pm2 save || pm2 save
 
